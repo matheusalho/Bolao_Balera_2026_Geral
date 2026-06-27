@@ -867,9 +867,9 @@ function App() {
     const [errorMsg, setErrorMsg] = useState('');
     const [selectedUser, setSelectedUser] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    // Mobile: "zoom out" para exibir a tabela de ranking completa na tela.
-    // Ligado por padrao; aplicado apenas quando a viewport e mobile.
-    const [fitTable, setFitTable] = useState(true);
+    // Mobile: a tabela de ranking abre sempre ajustada ("zoom out") para
+    // caber inteira na tela. Quem quiser ampliar usa o zoom (pinca) do
+    // proprio aparelho. Aplicado apenas quando a viewport e mobile.
     const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(max-width: 639px)').matches : false));
     const rankingScrollRef = React.useRef(null);
     useEffect(() => {
@@ -886,7 +886,7 @@ function App() {
             if (!el) return;
             const table = el.querySelector('table');
             if (!table) return;
-            if (fitTable && isMobileView) {
+            if (isMobileView) {
                 const full = table.scrollWidth;
                 const avail = el.clientWidth;
                 const s = (full > avail && full > 0) ? avail / full : 1;
@@ -901,7 +901,7 @@ function App() {
         apply();
         window.addEventListener('resize', apply);
         return () => window.removeEventListener('resize', apply);
-    }, [fitTable, isMobileView, searchTerm, data]);
+    }, [isMobileView, searchTerm, data]);
     useEffect(() => { localStorage.setItem('bolaoBaleraData', JSON.stringify(data)); }, [data]);
     useEffect(() => { localStorage.setItem('bolaoBaleraResults_v2', JSON.stringify(realResults)); }, [realResults]);
     useEffect(() => { localStorage.setItem('bolaoBaleraExtras', JSON.stringify(realExtras)); }, [realExtras]);
@@ -1100,10 +1100,7 @@ function App() {
                         React.createElement("input", { type: "text", className: "block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-1 ring-balera-blue border-balera-blue sm:text-sm transition-colors", placeholder: "Buscar colaborador pelo nome...", value: searchTerm, onChange: (e) => setSearchTerm(e.target.value) }),
                         searchTerm && (React.createElement("button", { onClick: () => setSearchTerm(''), className: "absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600" },
                             React.createElement("i", { "data-lucide": "x", className: "h-4 w-4" }))))),
-                React.createElement("div", { className: "mobile-only flex items-center justify-between gap-2 px-4 pt-3 pb-1" },
-                    React.createElement("button", { onClick: () => setFitTable((f) => !f), className: "flex items-center gap-1 text-xs font-bold text-balera-blue bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-md transition-colors" }, fitTable ? "↩ Voltar ao tamanho normal" : "⤢ Ajustar tabela à tela"),
-                    !fitTable && React.createElement("span", { className: "text-xs text-slate-400 whitespace-nowrap" }, "ou deslize ↔")),
-                React.createElement("div", { ref: rankingScrollRef, className: "overflow-x-auto ranking-scroll" + ((fitTable && isMobileView) ? " ranking-fit" : "") },
+                React.createElement("div", { ref: rankingScrollRef, className: "overflow-x-auto ranking-scroll" + (isMobileView ? " ranking-fit" : "") },
                     React.createElement("table", { className: "w-full text-left border-collapse whitespace-nowrap ranking-table" },
                         React.createElement("thead", null,
                             React.createElement("tr", { className: "bg-balera-blue text-white text-xs uppercase tracking-wider" },
