@@ -374,6 +374,9 @@ lucide.createIcons({icons});\``);if(typeof c>"u")throw new Error("`createIcons()
             .ranking-table th, .ranking-table td { padding: 0.5rem !important; }
             .ranking-table { font-size: 0.8rem; }
             .ranking-table td .text-lg { font-size: 0.95rem; }
+            /* Cabecalho do ranking pode quebrar em ate 2 linhas: estreita as
+               colunas, reduz a largura total e aumenta a escala de ajuste. */
+            .ranking-table thead th { white-space: normal; line-height: 1.15; vertical-align: bottom; }
         }
         @media (min-width: 768px) {
             .mobile-only { display: none; }
@@ -864,16 +867,26 @@ function App() {
     const [errorMsg, setErrorMsg] = useState('');
     const [selectedUser, setSelectedUser] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    // Mobile: "zoom out" para exibir a tabela de ranking completa na tela
-    const [fitTable, setFitTable] = useState(false);
+    // Mobile: "zoom out" para exibir a tabela de ranking completa na tela.
+    // Ligado por padrao; aplicado apenas quando a viewport e mobile.
+    const [fitTable, setFitTable] = useState(true);
+    const [isMobileView, setIsMobileView] = useState(() => (typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(max-width: 639px)').matches : false));
     const rankingScrollRef = React.useRef(null);
+    useEffect(() => {
+        if (!window.matchMedia) return;
+        const mq = window.matchMedia('(max-width: 639px)');
+        const onChange = () => setIsMobileView(mq.matches);
+        onChange();
+        mq.addEventListener('change', onChange);
+        return () => mq.removeEventListener('change', onChange);
+    }, []);
     useEffect(() => {
         const apply = () => {
             const el = rankingScrollRef.current;
             if (!el) return;
             const table = el.querySelector('table');
             if (!table) return;
-            if (fitTable) {
+            if (fitTable && isMobileView) {
                 const full = table.scrollWidth;
                 const avail = el.clientWidth;
                 const s = (full > avail && full > 0) ? avail / full : 1;
@@ -888,7 +901,7 @@ function App() {
         apply();
         window.addEventListener('resize', apply);
         return () => window.removeEventListener('resize', apply);
-    }, [fitTable, searchTerm, data]);
+    }, [fitTable, isMobileView, searchTerm, data]);
     useEffect(() => { localStorage.setItem('bolaoBaleraData', JSON.stringify(data)); }, [data]);
     useEffect(() => { localStorage.setItem('bolaoBaleraResults_v2', JSON.stringify(realResults)); }, [realResults]);
     useEffect(() => { localStorage.setItem('bolaoBaleraExtras', JSON.stringify(realExtras)); }, [realExtras]);
@@ -1090,7 +1103,7 @@ function App() {
                 React.createElement("div", { className: "mobile-only flex items-center justify-between gap-2 px-4 pt-3 pb-1" },
                     React.createElement("button", { onClick: () => setFitTable((f) => !f), className: "flex items-center gap-1 text-xs font-bold text-balera-blue bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-md transition-colors" }, fitTable ? "↩ Voltar ao tamanho normal" : "⤢ Ajustar tabela à tela"),
                     !fitTable && React.createElement("span", { className: "text-xs text-slate-400 whitespace-nowrap" }, "ou deslize ↔")),
-                React.createElement("div", { ref: rankingScrollRef, className: "overflow-x-auto ranking-scroll" + (fitTable ? " ranking-fit" : "") },
+                React.createElement("div", { ref: rankingScrollRef, className: "overflow-x-auto ranking-scroll" + ((fitTable && isMobileView) ? " ranking-fit" : "") },
                     React.createElement("table", { className: "w-full text-left border-collapse whitespace-nowrap ranking-table" },
                         React.createElement("thead", null,
                             React.createElement("tr", { className: "bg-balera-blue text-white text-xs uppercase tracking-wider" },
