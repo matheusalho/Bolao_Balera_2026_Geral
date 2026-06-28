@@ -859,8 +859,15 @@ function App() {
         return { ...INITIAL_REAL_RESULTS, ...parsedSaved };
     });
     const [realExtras, setRealExtras] = useState(() => {
+        // Resultado oficial embutido (vale para todos os visitantes). Empate na
+        // fase de grupos: Alemanha, França e Holanda com 10 gols cada.
+        const OFICIAL = { artilheiro: '', timeMaisGols: 'Alemanha, França, Holanda' };
         const saved = localStorage.getItem('bolaoBaleraExtras');
-        return saved ? JSON.parse(saved) : { artilheiro: '', timeMaisGols: '' };
+        const parsed = saved ? JSON.parse(saved) : {};
+        return {
+            artilheiro: (parsed.artilheiro && String(parsed.artilheiro).trim()) ? parsed.artilheiro : OFICIAL.artilheiro,
+            timeMaisGols: (parsed.timeMaisGols && String(parsed.timeMaisGols).trim()) ? parsed.timeMaisGols : OFICIAL.timeMaisGols
+        };
     });
     const [rules, setRules] = useState(DEFAULT_RULES);
     const [activeTab, setActiveTab] = useState(data.participants.length > 0 ? 'ranking' : 'upload');
@@ -966,6 +973,14 @@ function App() {
         return { pts: 0, type: 'miss' };
     };
     const normalizeText = (text) => text ? text.trim().toLowerCase() : '';
+    // Em caso de empate na "Seleção com Mais Gols", o admin pode informar
+    // varios times separados por virgula (ou ; / barra). Pontua quem
+    // escolheu QUALQUER um dos times empatados.
+    const isMostGoalsHit = (guess, official) => {
+        const g = normalizeText(guess);
+        if (!g || !official) return false;
+        return String(official).split(/[,;/]+/).map(s => normalizeText(s)).filter(Boolean).includes(g);
+    };
     const ranking = useMemo(() => {
         const calculated = data.participants.map(p => {
             let totalPoints = 0;
@@ -989,7 +1004,7 @@ function App() {
                 totalPoints += rules.topScorer;
                 stats.bonusArtilheiro = rules.topScorer;
             }
-            if (realExtras.timeMaisGols && normalizeText(p.extraGuesses.timeMaisGols) === normalizeText(realExtras.timeMaisGols)) {
+            if (realExtras.timeMaisGols && isMostGoalsHit(p.extraGuesses.timeMaisGols, realExtras.timeMaisGols)) {
                 totalPoints += rules.mostGoalsTeam;
                 stats.bonusTime = rules.mostGoalsTeam;
             }
@@ -1209,8 +1224,9 @@ function App() {
                             React.createElement("label", { className: "text-sm font-bold text-slate-300 mb-2" }, "Artilheiro Oficial:"),
                             React.createElement("input", { type: "text", placeholder: "Ex: Kylian Mbapp\u00E9", className: "w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded font-bold text-white focus:outline-none focus:ring-1 focus:ring-balera-blue", value: realExtras.artilheiro, onChange: (e) => setRealExtras({ ...realExtras, artilheiro: e.target.value }) })),
                         React.createElement("div", { className: "bg-slate-700 p-4 rounded-md border border-slate-600 flex flex-col shadow-inner" },
-                            React.createElement("label", { className: "text-sm font-bold text-slate-300 mb-2" }, "Sele\u00E7\u00E3o com Mais Gols:"),
-                            React.createElement("input", { type: "text", placeholder: "Ex: Alemanha", className: "w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded font-bold text-white focus:outline-none focus:ring-1 focus:ring-balera-blue", value: realExtras.timeMaisGols, onChange: (e) => setRealExtras({ ...realExtras, timeMaisGols: e.target.value }) })))),
+                            React.createElement("label", { className: "text-sm font-bold text-slate-300 mb-2" }, "Sele\u00E7\u00E3o(\u00F5es) com Mais Gols:"),
+                            React.createElement("input", { type: "text", placeholder: "Ex: Alemanha, Fran\u00E7a, Holanda", className: "w-full px-4 py-2 bg-slate-800 border border-slate-600 rounded font-bold text-white focus:outline-none focus:ring-1 focus:ring-balera-blue", value: realExtras.timeMaisGols, onChange: (e) => setRealExtras({ ...realExtras, timeMaisGols: e.target.value }) }),
+                            React.createElement("p", { className: "text-xs text-slate-400 mt-2" }, "Em caso de empate, separe os times por v\u00EDrgula. Todos os palpites em qualquer um deles recebem os pontos.")))),
                 React.createElement("div", { className: "bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden" },
                     React.createElement("div", { className: "p-6 border-b border-slate-100 bg-slate-50" },
                         React.createElement("h2", { className: "text-2xl font-bold text-slate-800 flex items-center gap-2" },
